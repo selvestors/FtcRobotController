@@ -3,7 +3,7 @@ package org.firstinspires.ftc.teamcode;
 import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
-import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.*;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 
@@ -15,6 +15,7 @@ public class EurekaMasterController extends LinearOpMode {
     private DcMotor leftBackDrive = null;
     private DcMotor rightFrontDrive = null;
     private DcMotor rightBackDrive = null;
+    private Servo clawServo = null;
 
     @Override
     public void runOpMode() {
@@ -25,6 +26,9 @@ public class EurekaMasterController extends LinearOpMode {
         leftBackDrive  = hardwareMap.get(DcMotor.class, "leftbackdrive");
         rightFrontDrive = hardwareMap.get(DcMotor.class, "rightfrontdrive");
         rightBackDrive = hardwareMap.get(DcMotor.class, "rightbackdrive");
+
+        clawServo = hardwareMap.get(DcMotor.class, "clawServo");
+
 
         // ########################################################################################
         // !!!            IMPORTANT Drive Information. Test your motor directions.            !!!!!

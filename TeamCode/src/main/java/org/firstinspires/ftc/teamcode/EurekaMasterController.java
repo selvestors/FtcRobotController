@@ -6,44 +6,74 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.*;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
-
+/** this is master HW controller class. That acts as singleton for all motors, servos and other components */
 public class EurekaMasterController extends LinearOpMode {
+//public class EurekaMasterController {
+
+    public static final String LEFT_FRONT_MOTOR = "left_front_motor_0";
+    public static final String RIGHT_FRONT_MOTOR = "right_front_motor_1";
+    public static final String LEFT_BACK_MOTOR = "left_back_motor_2";
+    public static final String RIGHT_BACK_MOTOR = "left_back_motor_3";
+
+    public static final String ARM_SHOULDER_MOTOR = "arm_shoulder_motor_0";
+    public static final String ARM_ELBOW_MOTOR = "arm_elbow_motor_1";
+    
+    public static final String ARM_WRIST_SERVO = "arm_wrist_servo_0";
+    public static final String LEFT_CLAW_SERVO = "left_claw_servo_1";
+    public static final String RIGHT_CLAW_SERVO = "right_claw_servo_2";
+
+
 
     // Declare OpMode members for each of the 4 motors.
     private ElapsedTime runtime = new ElapsedTime();
-    private DcMotor leftFrontDrive = null;
-    private DcMotor leftBackDrive = null;
-    private DcMotor rightFrontDrive = null;
-    private DcMotor rightBackDrive = null;
-    private Servo clawServo = null;
+    private DcMotor leftFrontMotor = null;
+    private DcMotor leftBackMotor = null;
+    private DcMotor rightFrontMotor = null;
+    private DcMotor rightBackMotor = null;
+
+    // Declare arm motors and servos
+    private DcMotor armShoulderMotor = null;
+    private DcMotor armElbowMotor = null;
+    
+    private Servo leftClawServo = null;
+    private Servo rightClawServo = null;
+    private Servo armWristServo = null;
 
     @Override
     public void runOpMode() {
 
+        
+
         // Initialize the hardware variables. Note that the strings used here must correspond
         // to the names assigned during the robot configuration step on the DS or RC devices.
-        leftFrontDrive  = hardwareMap.get(DcMotor.class, "leftfrontdrive");
-        leftBackDrive  = hardwareMap.get(DcMotor.class, "leftbackdrive");
-        rightFrontDrive = hardwareMap.get(DcMotor.class, "rightfrontdrive");
-        rightBackDrive = hardwareMap.get(DcMotor.class, "rightbackdrive");
+        leftFrontMotor  = hardwareMap.get(DcMotor.class, LEFT_FRONT_MOTOR);
+        rightFrontMotor = hardwareMap.get(DcMotor.class, RIGHT_FRONT_MOTOR);
+        leftBackMotor  = hardwareMap.get(DcMotor.class, LEFT_BACK_MOTOR);
+        rightBackMotor = hardwareMap.get(DcMotor.class, RIGHT_FRONT_MOTOR);
 
-        clawServo = hardwareMap.get(DcMotor.class, "clawServo");
+        armShoulderMotor  = hardwareMap.get(DcMotor.class, ARM_SHOULDER_MOTOR);
+        armElbowMotor = hardwareMap.get(DcMotor.class, ARM_ELBOW_MOTOR);
+
+        leftClawServo = hardwareMap.get(Servo.class, LEFT_CLAW_SERVO);
+        rightClawServo = hardwareMap.get(Servo.class, RIGHT_CLAW_SERVO);
+        armWristServo = hardwareMap.get(Servo.class, ARM_WRIST_SERVO);
+
 
 
         // ########################################################################################
-        // !!!            IMPORTANT Drive Information. Test your motor directions.            !!!!!
+        // !!!            IMPORTANT Motor Information. Test your motor directions.            !!!!!
         // ########################################################################################
-        // Most robots need the motors on one side to be reversed to drive forward.
+        // Most robots need the motors on one side to be reversed to Motor forward.
         // The motor reversals shown here are for a "direct drive" robot (the wheels turn the same direction as the motor shaft)
         // If your robot has additional gear reductions or uses a right-angled drive, it's important to ensure
         // that your motors are turning in the correct direction.  So, start out with the reversals here, BUT
         // when you first test your robot, push the left joystick forward and observe the direction the wheels turn.
         // Reverse the direction (flip FORWARD <-> REVERSE ) of any wheel that runs backward
         // Keep testing until ALL the wheels move the robot forward when you push the left joystick forward.
-        leftFrontDrive.setDirection(DcMotor.Direction.REVERSE);
-        leftBackDrive.setDirection(DcMotor.Direction.REVERSE);
-        rightFrontDrive.setDirection(DcMotor.Direction.FORWARD);
-        rightBackDrive.setDirection(DcMotor.Direction.FORWARD);
+        leftFrontMotor.setDirection(DcMotor.Direction.REVERSE);
+        leftBackMotor.setDirection(DcMotor.Direction.REVERSE);
+        rightFrontMotor.setDirection(DcMotor.Direction.FORWARD);
+        rightBackMotor.setDirection(DcMotor.Direction.FORWARD);
 
         // Wait for the game to start (driver presses START)
         telemetry.addData("Status", "Initialized");

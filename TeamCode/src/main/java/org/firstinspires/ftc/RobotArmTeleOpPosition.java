@@ -135,7 +135,21 @@ public class RobotArmTeleOpPosition extends LinearOpMode {
 
         // Run until the end of the match (driver presses STOP)
         while (opModeIsActive()) {
-            telemetry.addData("inside while", currentState);
+        
+            //init all functions
+            initGamePadControls();
+            initArm();
+            initSlider();
+            initWristServo();
+            initClaws();
+            telemetry.update();
+        }
+        
+        
+    }//end of runOpMode
+    
+    public void initGamePadControls() {
+        telemetry.addData("inside initGamePadControls", currentState);
             // State machine logic
             switch (currentState) {
                 
@@ -226,52 +240,77 @@ public class RobotArmTeleOpPosition extends LinearOpMode {
                 currentState = RobotState.MANUAL;
                 targetWrist -= 1;
             }
+    }
+    
+    public void initArm() {
+        
+        if (gamepad2.dpad_up){ 
             
-           //lastGrab = gamepad2.b;
-           // lastHook = gamepad2.y;
-
-          
-            
-            
-            
-            /*armShoulderLeftMotor.setTargetPosition(targetArm);
+            armShoulderLeftMotor.setTargetPosition(targetArm);
             armShoulderLeftMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
             armShoulderRightMotor.setTargetPosition(targetArm);
             armShoulderRightMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-            armElbowMotor.setTargetPosition(targetWrist);
-            armElbowMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        
             armShoulderLeftMotor.setPower(1);
             armShoulderRightMotor.setPower(1);
-            armElbowMotor.setPower(1);
-            */
-            initWristServo();
-            initClaws();
-            // Send telemetry data to the driver station
-            //telemetry.addData("Claw Position", clawOpen ? "Open" : "Closed");
-            telemetry.addData("Arm Shoulder Left Position ", armShoulderLeftMotor.getCurrentPosition());
-            telemetry.addData("Arm Shoulder Left Power", armShoulderLeftMotor.getPower());
-            telemetry.addData("Arm Shoulder Right Position ", armShoulderRightMotor.getCurrentPosition());
-            telemetry.addData("Arm Shoulder Right Power", armShoulderRightMotor.getPower());
-            telemetry.addData("Elbow Position", armElbowMotor.getCurrentPosition());
-            telemetry.addData("Elbow Power", armElbowMotor.getPower());
-
-            telemetry.update();
+            
+        } else if (gamepad2.dpad_down){
+            
+            armShoulderLeftMotor.setTargetPosition(targetArm);
+            armShoulderLeftMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+            armShoulderRightMotor.setTargetPosition(targetArm);
+            armShoulderRightMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        
+            armShoulderLeftMotor.setPower(1);
+            armShoulderRightMotor.setPower(1);
         }
+        /*
+        armShoulderLeftMotor.setTargetPosition(targetArm);
+        armShoulderLeftMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        armShoulderRightMotor.setTargetPosition(targetArm);
+        armShoulderRightMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
         
+        armShoulderLeftMotor.setPower(1);
+        armShoulderRightMotor.setPower(1);
+        armElbowMotor.setPower(1);
         
-    }//end of runOpMode
+        telemetry.addData("Arm Shoulder Left Position ", armShoulderLeftMotor.getCurrentPosition());
+        telemetry.addData("Arm Shoulder Left Power", armShoulderLeftMotor.getPower());
+        telemetry.addData("Arm Shoulder Right Position ", armShoulderRightMotor.getCurrentPosition());
+        telemetry.addData("Arm Shoulder Right Power", armShoulderRightMotor.getPower());
+        */
+    }
+    
+    public void initSlider() {
+        
+        if(gamepad2.x) {
+            armElbowMotor.setTargetPosition(500);
+            armElbowMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+            armElbowMotor.setPower(1.0);
+            telemetry.addData("Button X pressed", armWristServo.getPosition());
+        } else if(gamepad2.y){
+            armElbowMotor.setTargetPosition(1000);
+            armElbowMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+            armElbowMotor.setPower(1.0);
+            telemetry.addData("Button Y pressed", armWristServo.getPosition());
+        } else {
+                armElbowMotor.setPower(0.0);
+        }
+        telemetry.addData("Elbow Position", armElbowMotor.getCurrentPosition());
+        telemetry.addData("Elbow Power", armElbowMotor.getPower());
+    }
     
     public void initWristServo() {
-        
-             if(gamepad2.b) {
-                telemetry.addData("Button B pressed", armWristServo.getPosition());
-                armWristServo.setPosition(0.5);
-                telemetry.addData("Button B pressed", armWristServo.getPosition());
-            } else {
-                 telemetry.addData("Button B released", armWristServo.getPosition());
-                armWristServo.setPosition(0.0);
-                telemetry.addData("Button B released", armWristServo.getPosition());
-            }
+        armWristServo.setPosition(0.0);
+        if(gamepad2.b) {
+            armWristServo.setPosition(1.0);
+            telemetry.addData("Button B pressed", armWristServo.getPosition());
+        } else if(gamepad2.a){
+            armWristServo.setPosition(0.5);
+            telemetry.addData("Button A pressed", armWristServo.getPosition());
+        //} else {
+                //armWristServo.setPosition (0.0);
+        }
     } //end of initWristServo()
     
     public void initClaws() {

@@ -1,6 +1,8 @@
 package org.firstinspires.ftc.teamcode;
 
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
+import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
+import com.qualcomm.robotcore.util.ElapsedTime;
 import com.qualcomm.robotcore.robot.Robot;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.robot.RobotState;
@@ -15,17 +17,52 @@ public class RobotArmTeleOpPosition extends LinearOpMode {
     public static final String LEFT_FRONT_MOTOR = "left_front_motor_0";
     public static final String RIGHT_FRONT_MOTOR = "right_front_motor_1";
     public static final String LEFT_BACK_MOTOR = "left_back_motor_2";
-    public static final String RIGHT_BACK_MOTOR = "left_back_motor_3";
+    public static final String RIGHT_BACK_MOTOR = "right_back_motor_3";
 
-    public static final String ARM_SHOULDER_MOTOR = "arm_shoulder_motor_0";
+    public static final String ARM_SHOULDER_LEFT_MOTOR = "arm_shoulder_left_motor_0";
     public static final String ARM_ELBOW_MOTOR = "arm_elbow_motor_1";
-    
+    public static final String ARM_SHOULDER_RIGHT_MOTOR = "arm_shoulder_right_motor_2";
+
     public static final String ARM_WRIST_SERVO = "arm_wrist_servo_0";
     public static final String LEFT_CLAW_SERVO = "left_claw_servo_1";
     public static final String RIGHT_CLAW_SERVO = "right_claw_servo_2";
 
+    // Arm and Wrist target positions for each state
+/*  private static final int ARM_POSITION_INIT = 0;
+    private static final int ARM_POSITION_INTAKE = 450;
+    //private static final int ARM_POSITION_WALL_GRAB = 1100;
+    private static final int ARM_POSITION_WALL_UNHOOK = 1700;
+    private static final int ARM_POSITION_CLIP_LOW = 2100;
+    private static final int ARM_POSITION_CLIP_HIGH = 2100;
+    private static final int ARM_POSITION_LOW_BASKET = 2500;
+    private static final int ARM_POSITION_HIGH_BASKET = 2500;
+    private static final int ARM_POSITION_HOVER_HIGH = 2600;
+*/
+    private static final int ARM_POSITION_INIT = 0;
+    private static final int ARM_POSITION_INTAKE = 1;
+    private static final int ARM_POSITION_WALL_UNHOOK = 2;
+    private static final int ARM_POSITION_LOW_CHAMBER = 3;
+    private static final int ARM_POSITION_CLIP_HIGH = 4;
+    private static final int ARM_POSITION_LOW_BASKET = 5;
+    private static final int ARM_POSITION_HIGH_BASKET = 6;
+    private static final int ARM_POSITION_HOVER_HIGH = 7;
 
+    private static final int ARM_SLIDER_POSITION_INIT = 0;
+    private static final int ARM_SLIDER_POSITION_INTAKE = 1;
+    private static final int ARM_SLIDER_LOW_CHAMBER = 2;
+    private static final int ARM_SLIDER_HIGH_CHAMBER = 3;
+    private static final int ARM_SLIDER_LOW_BASKET = 4;
+    private static final int ARM_SLIDER_HIGH_BASKET = 5;
 
+    private static final int WRIST_POSITION_INIT = 0;
+    private static final int WRIST_POSITION_INTAKE = 0;
+    private static final int WRIST_POSITION_45_DEGREE = 45;
+    private static final int WRIST_POSITION_90_DEGREE = 90;
+
+    // Claw rotations
+    private static final double CLAW_ROTATE_CLOCKWISE = 1.0;
+
+    
     // Declare OpMode members for each of the 4 motors.
     private ElapsedTime runtime = new ElapsedTime();
     private DcMotor leftFrontMotor = null;
@@ -33,39 +70,17 @@ public class RobotArmTeleOpPosition extends LinearOpMode {
     private DcMotor rightFrontMotor = null;
     private DcMotor rightBackMotor = null;
 
-    // Declare arm motors and servos
-    private DcMotor armShoulderMotor = null;
+    // Declare Eureka arm motors and servos
+    private DcMotor armShoulderLeftMotor = null;
+    private DcMotor armShoulderRightMotor = null;
     private DcMotor armElbowMotor = null;
     
-    private Servo leftClawServo = null;
-    private Servo rightClawServo = null;
     private Servo armWristServo = null;
-    
+    private CRServo leftClawServo = null;
+    private CRServo rightClawServo = null;
 
-    private DcMotor wrist = null;
-    private Servo claw = null;
-    private CRServo intake = null;
-
-
-    // Arm and Wrist target positions for each state
-    private static final int ARM_POSITION_INIT = 300;
-    private static final int ARM_POSITION_INTAKE = 450;
-    private static final int ARM_POSITION_WALL_GRAB = 1100;
-    private static final int ARM_POSITION_WALL_UNHOOK = 1700;
-    private static final int ARM_POSITION_HOVER_HIGH = 2600;
-    private static final int ARM_POSITION_CLIP_HIGH = 2100;
-    private static final int ARM_POSITION_LOW_BASKET = 2500;
-
-    
-    private static final int WRIST_POSITION_INIT = 0;
-    private static final int WRIST_POSITION_SAMPLE = 270;
-    private static final int WRIST_POSITION_SPEC = 10;
-
-
-    
-    // Claw positions
-    private static final double CLAW_OPEN_POSITION = 0.55;
-    private static final double CLAW_CLOSED_POSITION = 0.7;
+    //private Servo claw = null;
+    //private CRServo intake = null;
 
     // Enum for state machine
     private enum RobotState {
@@ -73,9 +88,11 @@ public class RobotArmTeleOpPosition extends LinearOpMode {
         INTAKE,
         WALL_GRAB,
         WALL_UNHOOK,
-        HOVER_HIGH,
+        CLIP_LOW,
         CLIP_HIGH,
         LOW_BASKET,
+        HIGH_BASKET,
+        HOVER_HIGH,
         MANUAL
     }
 
@@ -83,10 +100,10 @@ public class RobotArmTeleOpPosition extends LinearOpMode {
     private RobotState currentState = RobotState.INIT;
 
     // Claw toggle state
-    private boolean clawOpen = true;
-    private boolean lastBump = false;
-    private boolean lastHook = false;
-    private boolean lastGrab = false;
+    //private boolean clawOpen = true;
+    //private boolean lastBump = false;
+   // private boolean lastHook = false;
+   // private boolean lastGrab = false;
     
     //target position
     private int targetArm = 0;
@@ -95,30 +112,33 @@ public class RobotArmTeleOpPosition extends LinearOpMode {
     @Override
     public void runOpMode() {
         // Initialize the hardware variables.
-        armShoulderMotor= hardwareMap.get(DcMotor.class, "arm");
-        armElbowMotor = hardwareMap.get(DcMotor.class, "wrist");
-        claw = hardwareMap.get(Servo.class, "claw");
-        intake = hardwareMap.get(CRServo.class, "intake");
+        armShoulderLeftMotor= hardwareMap.get(DcMotor.class, ARM_SHOULDER_LEFT_MOTOR);
+        armShoulderRightMotor= hardwareMap.get(DcMotor.class, ARM_SHOULDER_RIGHT_MOTOR);
+        armElbowMotor = hardwareMap.get(DcMotor.class, ARM_ELBOW_MOTOR);
+        
+        armWristServo = hardwareMap.get(Servo.class, ARM_WRIST_SERVO);
+        leftClawServo = hardwareMap.get(CRServo.class, LEFT_CLAW_SERVO);
+        rightClawServo = hardwareMap.get(CRServo.class, RIGHT_CLAW_SERVO);
 
         // Stop and reset encoders
-
-        armShoulderMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        armShoulderLeftMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        armShoulderRightMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         armElbowMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-
 
         //Set zero power behavior
         armElbowMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        armShoulderMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-
+        armShoulderLeftMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        armShoulderRightMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
         // Wait for the game to start (driver presses PLAY)
         waitForStart();
 
         // Run until the end of the match (driver presses STOP)
         while (opModeIsActive()) {
-
+            telemetry.addData("inside while", currentState);
             // State machine logic
             switch (currentState) {
+                
                 case INIT:
                     targetArm = ARM_POSITION_INIT;
                     targetWrist = WRIST_POSITION_INIT;
@@ -126,38 +146,46 @@ public class RobotArmTeleOpPosition extends LinearOpMode {
                     break;
                 case INTAKE:
                     targetArm = ARM_POSITION_INTAKE;
-                    targetWrist = WRIST_POSITION_SAMPLE;
+                    targetWrist = WRIST_POSITION_INTAKE;
                     telemetry.addData("State", "INTAKE");
-                    break;
-
-                case WALL_GRAB:
-                    targetArm = ARM_POSITION_WALL_GRAB;
-                    targetWrist = WRIST_POSITION_SPEC;
-                    telemetry.addData("State", "WALL_GRAB");
                     break;
 
                 case WALL_UNHOOK:
                     targetArm = ARM_POSITION_WALL_UNHOOK;
-                    targetWrist = WRIST_POSITION_SPEC;
+                    targetWrist = WRIST_POSITION_90_DEGREE;
                     telemetry.addData("State", "WALL_UNHOOK");
                     break;
 
-                case HOVER_HIGH:
-                    targetArm = ARM_POSITION_HOVER_HIGH;
-                    targetWrist = WRIST_POSITION_SPEC;
-                    telemetry.addData("State", "HOVER_HIGH");
+                case CLIP_LOW:
+                    targetArm = ARM_POSITION_LOW_CHAMBER;
+                    targetWrist = WRIST_POSITION_90_DEGREE;
+                    telemetry.addData("State", "CLIP_LOW");
                     break;
                     
                 case CLIP_HIGH:
                     targetArm = ARM_POSITION_CLIP_HIGH;
-                    targetWrist = WRIST_POSITION_SPEC;
+                    targetWrist = WRIST_POSITION_90_DEGREE;
                     telemetry.addData("State", "CLIP_HIGH");
                     break;
+                    
                 case LOW_BASKET:
                     targetArm = ARM_POSITION_LOW_BASKET;
-                    targetWrist = WRIST_POSITION_SAMPLE;
+                    targetWrist = WRIST_POSITION_90_DEGREE;
                     telemetry.addData("State", "LOW_BASKET");
                     break;
+                    
+                case HIGH_BASKET:
+                    targetArm = ARM_POSITION_HIGH_BASKET;
+                    targetWrist = WRIST_POSITION_90_DEGREE;
+                    telemetry.addData("State", "HIGH_BASKET");
+                    break;
+                    
+                case HOVER_HIGH:
+                    targetArm = ARM_POSITION_HOVER_HIGH;
+                    targetWrist = WRIST_POSITION_90_DEGREE;
+                    telemetry.addData("State", "HOVER_HIGH");
+                    break;
+                    
                 case MANUAL:
                     telemetry.addData("State", "MANUAL");
                     break;
@@ -165,76 +193,106 @@ public class RobotArmTeleOpPosition extends LinearOpMode {
             
 
             // Handle state transitions based on gamepad input
-            if (gamepad1.a) {
+            if (gamepad2.a) {
                 currentState = RobotState.INTAKE;
-            } else if (gamepad1.b && !lastGrab) {
+            //} else if (gamepad2.b && !lastGrab) {
+            } else if (gamepad2.b) {
                 if(currentState == RobotState.WALL_GRAB){
                     currentState = RobotState.WALL_UNHOOK;
                 }else{
                     currentState = RobotState.WALL_GRAB;
                 }
-            } else if (gamepad1.y && !lastHook) {
+           // } else if (gamepad2.y && !lastHook) {
+            } else if (gamepad2.y) {
                 if(currentState == RobotState.HOVER_HIGH){
                     currentState = RobotState.CLIP_HIGH;
                 }else{
                     currentState = RobotState.HOVER_HIGH;
                 }
-            } else if (gamepad1.x) { 
+            } else if (gamepad2.x) { 
                 currentState = RobotState.LOW_BASKET;           
-            } else if (gamepad1.left_bumper) {
+            } else if (gamepad2.left_bumper) {
                 currentState = RobotState.INIT;
-            } else if (gamepad1.dpad_up){ //manual control
+            } else if (gamepad2.dpad_up){ //manual control
                 currentState = RobotState.MANUAL;
                 targetArm += 10;
-            } else if (gamepad1.dpad_down){
+            } else if (gamepad2.dpad_down){
                 currentState = RobotState.MANUAL;
                 targetArm -= 10;
-            } else if (gamepad1.dpad_left){
+            } else if (gamepad2.dpad_left){
                 currentState = RobotState.MANUAL;
                 targetWrist += 1;
-            } else if (gamepad1.dpad_right){
+            } else if (gamepad2.dpad_right){
                 currentState = RobotState.MANUAL;
                 targetWrist -= 1;
             }
             
-            lastGrab = gamepad1.b;
-            lastHook = gamepad1.y;
+           //lastGrab = gamepad2.b;
+           // lastHook = gamepad2.y;
 
-            // Toggle claw position when right_bumper is pressed
-            if (gamepad1.right_bumper && !lastBump) {
-                clawOpen = !clawOpen;
-                if (clawOpen) {
-                    claw.setPosition(CLAW_OPEN_POSITION);
-                } else {
-                    claw.setPosition(CLAW_CLOSED_POSITION);
-                }
-            }
-            lastBump = gamepad1.right_bumper;
-
-            // Control intake servo with triggers
-            if (gamepad1.right_trigger>0.1) {
-                intake.setPower(1.0);
-            } else if (gamepad1.left_trigger>0.1) {
-                intake.setPower(-1.0);
-            } else {
-                intake.setPower(0);
-            }
+          
             
             
-            armShoulderMotor.setTargetPosition(targetArm);
-            armShoulderMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+            
+            /*armShoulderLeftMotor.setTargetPosition(targetArm);
+            armShoulderLeftMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+            armShoulderRightMotor.setTargetPosition(targetArm);
+            armShoulderRightMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
             armElbowMotor.setTargetPosition(targetWrist);
             armElbowMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-            armShoulderMotor.setPower(1);
+            armShoulderLeftMotor.setPower(1);
+            armShoulderRightMotor.setPower(1);
             armElbowMotor.setPower(1);
-
+            */
+            initWristServo();
+            initClaws();
             // Send telemetry data to the driver station
-            telemetry.addData("Claw Position", clawOpen ? "Open" : "Closed");
-            telemetry.addData("Arm Position", arm.getCurrentPosition());
-            telemetry.addData("Arm Power", arm.getPower());
-            telemetry.addData("Wrist Position", armElbowMotor.getCurrentPosition());
-            telemetry.addData("Wrist Power", armElbowMotor.getPower());
+            //telemetry.addData("Claw Position", clawOpen ? "Open" : "Closed");
+            telemetry.addData("Arm Shoulder Left Position ", armShoulderLeftMotor.getCurrentPosition());
+            telemetry.addData("Arm Shoulder Left Power", armShoulderLeftMotor.getPower());
+            telemetry.addData("Arm Shoulder Right Position ", armShoulderRightMotor.getCurrentPosition());
+            telemetry.addData("Arm Shoulder Right Power", armShoulderRightMotor.getPower());
+            telemetry.addData("Elbow Position", armElbowMotor.getCurrentPosition());
+            telemetry.addData("Elbow Power", armElbowMotor.getPower());
+
             telemetry.update();
         }
+        
+        
+    }//end of runOpMode
+    
+    public void initWristServo() {
+        
+             if(gamepad2.b) {
+                telemetry.addData("Button B pressed", armWristServo.getPosition());
+                armWristServo.setPosition(0.5);
+                telemetry.addData("Button B pressed", armWristServo.getPosition());
+            } else {
+                 telemetry.addData("Button B released", armWristServo.getPosition());
+                armWristServo.setPosition(0.0);
+                telemetry.addData("Button B released", armWristServo.getPosition());
+            }
+    } //end of initWristServo()
+    
+    public void initClaws() {
+            // Toggle claw rotation when right or left triggers are pressed
+            // Control intake servo with triggers
+            if (gamepad2.right_trigger > 0.0) {
+                leftClawServo.setPower(-CLAW_ROTATE_CLOCKWISE);
+                rightClawServo.setPower(CLAW_ROTATE_CLOCKWISE);
+                
+                telemetry.addData("Right Trigger pressed", leftClawServo.getPower());
+                
+            } else if (gamepad2.left_trigger > 0.0) {
+                leftClawServo.setPower(CLAW_ROTATE_CLOCKWISE);
+                rightClawServo.setPower(-CLAW_ROTATE_CLOCKWISE);
+                telemetry.addData("Left Trigger pressed", rightClawServo.getPower());
+                
+            } else {
+                leftClawServo.setPower(0.0);
+                rightClawServo.setPower(0.0);
+                telemetry.addData("Triggers released", rightClawServo.getPower());
+            }
+
     }
 }

@@ -7,20 +7,22 @@ import com.qualcomm.robotcore.hardware.*;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 /** this is master HW controller class. That acts as singleton for all motors, servos and other components */
+@TeleOp (name="EurekaMaster")
 public class EurekaMasterController extends LinearOpMode {
 //public class EurekaMasterController {
 
     public static final String LEFT_FRONT_MOTOR = "left_front_motor_0";
     public static final String RIGHT_FRONT_MOTOR = "right_front_motor_1";
     public static final String LEFT_BACK_MOTOR = "left_back_motor_2";
-    public static final String RIGHT_BACK_MOTOR = "left_back_motor_3";
+    public static final String RIGHT_BACK_MOTOR = "right_back_motor_3";
 
-    public static final String ARM_SHOULDER_MOTOR = "arm_shoulder_motor_0";
+    public static final String ARM_SHOULDER_LEFT_MOTOR = "arm_shoulder_left_motor_0";
     public static final String ARM_ELBOW_MOTOR = "arm_elbow_motor_1";
+    public static final String ARM_SHOULDER_RIGHT_MOTOR = "arm_shoulder_right_motor_2";
     
     public static final String ARM_WRIST_SERVO = "arm_wrist_servo_0";
     public static final String LEFT_CLAW_SERVO = "left_claw_servo_1";
-    public static final String RIGHT_CLAW_SERVO = "right_claw_servo_2";
+    public static final String RIGHT_CLAW_SERVO = "right_claw_servo_3";
 
 
 
@@ -31,8 +33,9 @@ public class EurekaMasterController extends LinearOpMode {
     private DcMotor rightFrontMotor = null;
     private DcMotor rightBackMotor = null;
 
-    // Declare arm motors and servos
-    private DcMotor armShoulderMotor = null;
+    // Declare Eureka arm motors and servos
+    private DcMotor armShoulderLeftMotor = null;
+    private DcMotor armShoulderRightMotor = null;
     private DcMotor armElbowMotor = null;
     
     private Servo leftClawServo = null;
@@ -49,10 +52,11 @@ public class EurekaMasterController extends LinearOpMode {
         leftFrontMotor  = hardwareMap.get(DcMotor.class, LEFT_FRONT_MOTOR);
         rightFrontMotor = hardwareMap.get(DcMotor.class, RIGHT_FRONT_MOTOR);
         leftBackMotor  = hardwareMap.get(DcMotor.class, LEFT_BACK_MOTOR);
-        rightBackMotor = hardwareMap.get(DcMotor.class, RIGHT_FRONT_MOTOR);
+        rightBackMotor = hardwareMap.get(DcMotor.class, RIGHT_BACK_MOTOR);
 
-        armShoulderMotor  = hardwareMap.get(DcMotor.class, ARM_SHOULDER_MOTOR);
+        armShoulderLeftMotor  = hardwareMap.get(DcMotor.class, ARM_SHOULDER_LEFT_MOTOR);
         armElbowMotor = hardwareMap.get(DcMotor.class, ARM_ELBOW_MOTOR);
+        armShoulderRightMotor = hardwareMap.get(DcMotor.class, ARM_SHOULDER_RIGHT_MOTOR);
 
         leftClawServo = hardwareMap.get(Servo.class, LEFT_CLAW_SERVO);
         rightClawServo = hardwareMap.get(Servo.class, RIGHT_CLAW_SERVO);
@@ -75,12 +79,30 @@ public class EurekaMasterController extends LinearOpMode {
         rightFrontMotor.setDirection(DcMotor.Direction.FORWARD);
         rightBackMotor.setDirection(DcMotor.Direction.FORWARD);
 
+        // Stop and reset encoders
+        armShoulderLeftMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        armShoulderRightMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        armElbowMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+
+        //Set zero power behavior
+        armElbowMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        armShoulderLeftMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        armShoulderRightMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        
         // Wait for the game to start (driver presses START)
         telemetry.addData("Status", "Initialized");
         telemetry.update();
 
         waitForStart();
-        runtime.reset();
+        // runtime.reset();
+        
+        //set the arm wrist to neutral position
+        armWristServo.setPosition(1);
+
+        //initial position - not rotating wheels
+        leftClawServo.setPosition(0.5);
+        rightClawServo.setPosition(0.5);
+
 
         // run until the end of the match (driver presses STOP)
         while (opModeIsActive()) {
@@ -111,40 +133,112 @@ public class EurekaMasterController extends LinearOpMode {
                 rightBackPower  /= max;
             }
 
-            // This is test code:
-            //
-            // Uncomment the following code to test your motor directions.
-            // Each button should make the corresponding motor run FORWARD.
-            //   1) First get all the motors to take to correct positions on the robot
-            //      by adjusting your Robot Configuration if necessary.
-            //   2) Then make sure they run in the correct direction by modifying the
-            //      the setDirection() calls above.
-            // Once the correct motors move in the correct direction re-comment this code.
-
-            /*
-            leftFrontPower  = gamepad1.x ? 1.0 : 0.0;  // X gamepad
-            leftBackPower   = gamepad1.a ? 1.0 : 0.0;  // A gamepad
-            rightFrontPower = gamepad1.y ? 1.0 : 0.0;  // Y gamepad
-            rightBackPower  = gamepad1.b ? 1.0 : 0.0;  // B gamepad
-            */
-
             // Send calculated power to wheels
-            leftFrontDrive.setPower(leftFrontPower);
-            rightFrontDrive.setPower(rightFrontPower);
-            leftBackDrive.setPower(leftBackPower);
-            rightBackDrive.setPower(rightBackPower);
+            leftFrontMotor.setPower(leftFrontPower);
+            rightFrontMotor.setPower(rightFrontPower);
+            leftBackMotor.setPower(leftBackPower);
+            rightBackMotor.setPower(rightBackPower);
+            
+            double armExtendUp = gamepad2.y ? 1.0 : 0.0;  // Y gamepad
+            double armExtendDown = gamepad2.a ? -1.0 : 0.0;  // A gamepad
+            double armPivotUp = gamepad2.x ? 1.0 : 0.0;  // X gamepad
+            double armPivotDown = gamepad2.b ? -1.0 : 0.0;  // B gamepad
+            //roll inward - pick up the sample
+            double leftClawUp = gamepad2.left_trigger; //wheel claw up left
+            double rightClawUp = gamepad2.left_trigger; //wheel claw up right
+            
+            //roll outward - eject
+            double leftClawDown = -gamepad2.right_trigger; //wheel claw down left
+            double rightClawDown = -gamepad2.right_trigger; //wheel claw down right
+            
+            double armWristUp = gamepad2.dpad_up ? 1.0 : 0.0; //wrist up
+            double armWristDown = gamepad2.dpad_down ? 0.0 : 0.0; //wrist down
+            
+            armShoulderLeftMotor.setPower(armPivotUp);
+            armShoulderRightMotor.setPower(armPivotUp);
+            
+            armShoulderLeftMotor.setPower(armPivotDown);
+            armShoulderRightMotor.setPower(armPivotDown);
+            
+            armElbowMotor.setPower(armExtendUp);
+            armElbowMotor.setPower(armExtendDown);
+            
+            //right trigger is pressed
+            if(gamepad2.right_trigger>0){
+                leftClawServo.setDirection(Servo.Direction.FORWARD);
+                rightClawServo.setDirection(Servo.Direction.REVERSE);
 
-            // Show the elapsed game time and wheel power.
+                leftClawServo.setPosition(gamepad2.right_trigger);
+                rightClawServo.setPosition(gamepad2.right_trigger);
+            }
+            else{
+                leftClawServo.setPosition(0.5);
+                rightClawServo.setPosition(0.5);
+            }
+
+
+            
+            //left trigger pressed - intake
+            if(gamepad2.left_trigger>0){
+                leftClawServo.setDirection(Servo.Direction.REVERSE);
+                rightClawServo.setDirection(Servo.Direction.FORWARD);
+
+                leftClawServo.setPosition(gamepad2.left_trigger);
+                rightClawServo.setPosition(gamepad2.left_trigger);
+            }
+            else{
+                leftClawServo.setPosition(0.5);
+                rightClawServo.setPosition(0.5);
+            }
+            
+            // if(gamepad1.right_trigger<=0 || gamepad1.left_trigger<=0 ){
+            //     leftClawServo.setPosition(0.5);
+            //     rightClawServo.setPosition(0.5);
+            // }
+
+            
+            
+            //armWristServo.setPosition(0.0);
+            
+            //if D-pad up pressed, then bend wrist down
+            if(gamepad2.dpad_down){
+                armWristServo.setDirection(Servo.Direction.REVERSE);
+                armWristServo.setPosition(1);
+            }
+            //if D-pad down pressed, then bend wrist up
+            else if(gamepad2.dpad_up){
+                armWristServo.setDirection(Servo.Direction.FORWARD);
+                armWristServo.setPosition(1);
+            }
+
+            //armWristServo.setPosition(armWristDown);
+            // leftClawServo.setPosition(0.0);
+            //leftClawServo.setPosition(leftClawUp);
+            //rightClawServo.setPosition(leftClawUp);
+            //leftClawServo.setPosition(leftClawDown);
+           
+  
+//            rightClawServo.setPosition(0.0);
+            //rightClawServo.setPosition(rightClawUp);
+            //rightClawServo.setPosition(rightClawDown);
+
+            // Show the elapsed game time and all component power.
             telemetry.addData("Status", "Run Time: " + runtime.toString());
             telemetry.addData("Front left/Right", "%4.2f, %4.2f", leftFrontPower, rightFrontPower);
             telemetry.addData("Back  left/Right", "%4.2f, %4.2f", leftBackPower, rightBackPower);
+            telemetry.addData("armPivotUp and down", "%4.2f, %4.2f", armPivotUp, armPivotDown);
+            telemetry.addData("armExtendUp and down", "%4.2f, %4.2f", armExtendUp, armExtendDown);
+            telemetry.addData("armWristUp and down", "%4.2f, %4.2f", armWristUp, armWristDown);
+            telemetry.addData("leftClaw and rightClaw", "%4.2f, %4.2f", gamepad2.left_trigger, gamepad2.right_trigger);
+            telemetry.addData("servo left and right", "%4.2f, %4.2f", leftClawServo.getPosition(), rightClawServo.getPosition());
+
             telemetry.update();
         }
     }
 
-    public static void main(String[] s) {
-        EurekaMasterController emc = new EurekaMasterController();
-        emc.runOpMode();
-    }
+    // public static void main(String[] s) {
+    //     EurekaMasterController emc = new EurekaMasterController();
+    //     emc.runOpMode();
+    // }
 
 }
